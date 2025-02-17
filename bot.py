@@ -1,8 +1,8 @@
 import os
 import logging
 from datetime import datetime, timedelta
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # Enable logging
@@ -60,7 +60,15 @@ async def handle_break(update: Update, context: CallbackContext):
     # Start break
     start_time = datetime.now()
     data["users"][user_id] = {"start_time": start_time, "username": username}
-    await update.message.reply_text(f"Your {break_type} break has started. You have 15 minutes. Please return on time!")
+
+    # Add inline keyboard button for returning
+    keyboard = [[InlineKeyboardButton("I'm back", callback_data="return")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        f"Your {break_type} break has started. You have 15 minutes. Please return on time!",
+        reply_markup=reply_markup
+    )
 
     # Notify admin
     await context.bot.send_message(
@@ -93,10 +101,13 @@ async def handle_break(update: Update, context: CallbackContext):
 
     context.job_queue.run_once(end_break, 15 * 60)  # 15 minutes
 
-# Handle early return
-async def handle_return(update: Update, context: CallbackContext):
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
+# Handle return button click
+async def handle_return_button(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    username = query.from_user.username
 
     # Check if the user is on any break
     for break_type, data in break_data.items():
@@ -107,7 +118,7 @@ async def handle_return(update: Update, context: CallbackContext):
             data["users"].pop(user_id)
 
             # Notify user
-            await update.message.reply_text(
+            await query.edit_message_text(
                 f"@{username} took {duration} minutes for {break_type}.\n"
                 "You can go for another break after 15 minutes."
             )
@@ -119,7 +130,7 @@ async def handle_return(update: Update, context: CallbackContext):
             )
             return
 
-    await update.message.reply_text("You are not currently on a break.")
+    await query.edit_message_text("You are not currently on a break.")
 
 # Handle late return reason
 async def handle_reason(update: Update, context: CallbackContext):
@@ -208,7 +219,7 @@ def main():
     # Add handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.Text(["Toilet Break", "Drinking Break", "Outside Break"]), handle_break))
-    application.add_handler(MessageHandler(filters.Text(["I'm back"]), handle_return))
+    application.add_handler(CallbackQueryHandler(handle_return_button))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_reason))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_approval))
     application.add_handler(CommandHandler("check", check_availability))
