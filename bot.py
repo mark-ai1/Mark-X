@@ -191,7 +191,12 @@ async def reset_data(context: CallbackContext):
 # Main function
 def main():
     # Use environment variables for the token and admin chat ID
-    application = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
+    application = (
+        ApplicationBuilder()
+        .token(os.getenv('TELEGRAM_BOT_TOKEN'))
+        .job_queue(enabled=True)  # Enable JobQueue
+        .build()
+    )
 
     # Add handlers
     application.add_handler(CommandHandler("start", start))
@@ -208,6 +213,3 @@ def main():
 
     # Start the bot
     application.run_polling()
-
-if __name__ == '__main__':
-    main()
