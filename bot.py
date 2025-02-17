@@ -203,12 +203,7 @@ def run_dummy_server():
 # Main function
 def main():
     # Use environment variables for the token and admin chat ID
-    application = (
-        ApplicationBuilder()
-        .token(os.getenv('TELEGRAM_BOT_TOKEN'))
-        .job_queue(enabled=True)  # Enable JobQueue
-        .build()
-    )
+    application = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
 
     # Add handlers
     application.add_handler(CommandHandler("start", start))
