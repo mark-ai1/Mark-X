@@ -16,6 +16,33 @@ break_data = {
     "outside": {"users": {}, "limit": 4, "daily_limit": 5}
 }
 
+# Handle early return
+async def handle_return(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    username = update.message.from_user.username
+
+    # Check if the user is on any break
+    for break_type, data in break_data.items():
+        if user_id in data["users"]:
+            start_time = data["users"][user_id]["start_time"]
+            end_time = datetime.now()
+            duration = (end_time - start_time).seconds // 60  # Duration in minutes
+            data["users"].pop(user_id)
+
+            # Notify user
+            await update.message.reply_text(
+                f"@{username} took {duration} minutes for {break_type}.\n"
+                "You can go for another break after 15 minutes."
+            )
+
+            # Notify admin
+            await context.bot.send_message(
+                chat_id=ADMIN_CHAT_ID,
+                text=f"@{username} has returned early from their {break_type} break after {duration} minutes."
+            )
+            return
+
+    await update.message.reply_text("You are not currently on a break.")
 # Store late return reasons and fines
 late_returns = {}
 fines = {}
