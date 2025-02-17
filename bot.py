@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
+from http.server import BaseHTTPRequestHandler, HTTPServer  # Add this import
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -188,6 +189,17 @@ async def reset_data(context: CallbackContext):
     fines = {}
     logger.info("Data reset for the new day.")
 
+# Dummy HTTP server to satisfy Render's port binding requirement
+class DummyHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
+
+def run_dummy_server():
+    server = HTTPServer(('0.0.0.0', 10000), DummyHandler)
+    server.serve_forever()
+
 # Main function
 def main():
     # Use environment variables for the token and admin chat ID
@@ -211,5 +223,12 @@ def main():
     midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     application.job_queue.run_once(reset_data, (midnight - now).total_seconds())
 
+    # Start the dummy HTTP server in a separate thread
+    import threading
+    threading.Thread(target=run_dummy_server, daemon=True).start()
+
     # Start the bot
     application.run_polling()
+
+if __name__ == '__main__':
+    main()
