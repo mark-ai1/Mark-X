@@ -19,8 +19,8 @@ break_data = {
 late_returns = {}
 fines = {}
 
-# Admin chat ID (replace with your Telegram chat ID)
-ADMIN_CHAT_ID = 6495686029  # Change this to your admin chat ID
+# Get admin chat ID from environment variable
+ADMIN_CHAT_ID = int(os.getenv('ADMIN_CHAT_ID'))  # Ensure this is set in your environment
 
 # Command: /start
 async def start(update: Update, context: CallbackContext):
@@ -162,7 +162,7 @@ async def reset_data(context: CallbackContext):
 
 # Main function
 def main():
-    # Use environment variable for the token
+    # Use environment variables for the token and admin chat ID
     application = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
 
     # Add handlers
